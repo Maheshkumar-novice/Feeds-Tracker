@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Reader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <h1 id="appTitle">RSS Reader</h1>
+                <button id="closeSidebarBtn" class="btn-close-sidebar">×</button>
+            </div>
+
+            <div class="feeds" id="feedsList"></div>
+
+            <div class="manage-feeds-link">
+                <div class="feed" id="manageFeed" onclick="showManageFeeds()">
+                    <div class="feed-info">
+                        <div class="feed-name">⚙️ Manage Feeds</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-header">
+                <button id="menuBtn" class="menu-btn">☰</button>
+                <h2 id="feedTitle">Select a feed</h2>
+            </div>
+
+            <div id="articlesList" class="articles"></div>
+
+            <!-- Manage Feeds View -->
+            <div id="manageFeedsView" class="manage-feeds" style="display: none;">
+                <div class="manage-header">
+                    <h3>Manage Feeds</h3>
+                </div>
+
+                <div class="add-feed-section">
+                    <input type="url" id="newFeedUrl" placeholder="Enter feed URL...">
+                    <button id="addNewFeed" class="btn-primary">Add Feed</button>
+                    <button id="refreshAllBtn" class="btn-secondary">Refresh All</button>
+                </div>
+
+                <div id="feedsManageList" class="feeds-manage-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,12 @@
+[project]
+name = "rss"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.0.0",
+    "feedparser>=6.0.0",
+    "flask-cors>=4.0.0",
+    "apscheduler>=3.10.0",
+]
