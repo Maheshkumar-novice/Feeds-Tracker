@@ -39,6 +39,7 @@ appTitle.onclick = () => {
     // Close sidebar on mobile
     if (window.innerWidth <= 768) {
         sidebar.classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
     }
 };
 
@@ -47,6 +48,7 @@ document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768) {
         if (e.target.closest('.feed') && !e.target.closest('.feed-delete')) {
             sidebar.classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
         }
     }
 });
@@ -253,11 +255,14 @@ function formatDate(dateStr) {
 }
 
 function stripTags(html) {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    return div.textContent || '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
 }
 
 function toggleSidebar() {
     sidebar.classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
 }
+
+// Close sidebar when clicking overlay
+document.getElementById('sidebarOverlay').onclick = toggleSidebar;
