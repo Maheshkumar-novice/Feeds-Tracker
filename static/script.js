@@ -18,7 +18,118 @@ const closeSidebarBtn = document.getElementById('closeSidebarBtn');
 const appTitle = document.getElementById('appTitle');
 const sidebar = document.querySelector('.sidebar');
 
+// Auth
+let authToken = localStorage.getItem('authToken');
+let authRequired = false;
+
+async function checkAuthRequirement() {
+    try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+        authRequired = config.auth_required;
+        updateAuthState();
+    } catch (e) {
+        console.error('Failed to check auth config', e);
+    }
+}
+
+async function toggleAuth() {
+    if (authToken) {
+        if (confirm('Logout?')) {
+            authToken = null;
+            localStorage.removeItem('authToken');
+            updateAuthState();
+        }
+    } else {
+        const token = prompt('Enter admin token:');
+        if (!token) return;
+
+        try {
+            // Verify token with backend
+            const res = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (res.ok) {
+                authToken = token;
+                localStorage.setItem('authToken', token);
+                updateAuthState();
+            } else {
+                alert('Invalid token');
+            }
+        } catch (e) {
+            alert('Error verifying token');
+            console.error(e);
+        }
+    }
+}
+
+function updateAuthState() {
+    const authBtn = document.getElementById('authBtn');
+    const authBtnText = document.getElementById('authBtnText');
+    const manageFeed = document.getElementById('manageFeed');
+    const addNewFeedContainer = document.querySelector('.add-feed-section');
+    const refreshAllBtn = document.getElementById('refreshAllBtn');
+
+    // If auth is NOT required by backend, show everything and hide login button
+    if (!authRequired) {
+        authBtn.style.display = 'none';
+        manageFeed.style.display = 'block';
+        addNewFeedContainer.style.display = 'flex';
+        refreshAllBtn.style.display = 'block';
+        document.body.classList.add('authenticated');
+        return;
+    }
+
+    // Auth IS required
+    authBtn.style.display = 'block';
+
+    if (authToken) {
+        authBtnText.textContent = '🔓 Logout';
+        manageFeed.style.display = 'block';
+        addNewFeedContainer.style.display = 'flex';
+        refreshAllBtn.style.display = 'block';
+        document.body.classList.add('authenticated');
+    } else {
+        authBtnText.textContent = '🔒 Login';
+        manageFeed.style.display = 'none';
+        addNewFeedContainer.style.display = 'none';
+        refreshAllBtn.style.display = 'none';
+        document.body.classList.remove('authenticated');
+
+        // If in manage view, go back to home
+        if (isManageView) {
+            appTitle.click();
+        }
+    }
+}
+
+// Helper for authenticated fetch
+async function authFetch(url, options = {}) {
+    if (!authToken) return null;
+
+    const headers = options.headers || {};
+    headers['Authorization'] = `Bearer ${authToken}`;
+    options.headers = headers;
+
+    const res = await fetch(url, options);
+
+    if (res.status === 401) {
+        alert('Session expired or invalid token');
+        authToken = null;
+        localStorage.removeItem('authToken');
+        updateAuthState();
+        return null;
+    }
+
+    return res;
+}
+
 // Init
+checkAuthRequirement();
 loadFeeds();
 loadAllArticles(); // Load all articles on startup
 
@@ -69,7 +180,7 @@ function renderFeeds() {
     feedsList.innerHTML = feeds.map(f => `
         <div class="feed" onclick="selectFeed(${f.id})">
             <div class="feed-info">
-                <div class="feed-name">${f.title || 'Untitled'}</div>
+                <div class="feed-name">${escapeHtml(f.title || 'Untitled')}</div>
             </div>
         </div>
     `).join('');
@@ -82,11 +193,13 @@ async function addFeed() {
     if (!url) return;
 
     try {
-        const res = await fetch('/api/feeds', {
+        const res = await authFetch('/api/feeds', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
+
+        if (!res) return; // Auth failed
 
         if (!res.ok) {
             const err = await res.json();
@@ -96,7 +209,7 @@ async function addFeed() {
 
         newFeedUrl.value = '';
         await loadFeeds();
-        renderManageFeeds();
+        if (isManageView) renderManageFeeds();
 
     } catch (err) {
         alert('Error: ' + err.message);
@@ -140,10 +253,10 @@ function renderManageFeeds() {
     feedsManageList.innerHTML = feeds.map(f => `
         <div class="manage-feed-item">
             <div class="manage-feed-info">
-                <div class="manage-feed-title">${f.title || 'Untitled'}</div>
-                <div class="manage-feed-url">${f.url}</div>
+                <div class="manage-feed-title">${escapeHtml(f.title || 'Untitled')}</div>
+                <div class="manage-feed-url">${escapeHtml(f.url)}</div>
             </div>
-            <button class="btn-delete" onclick="deleteFeedFromManage(${f.id}, '${(f.title || 'Untitled').replace(/'/g, "&apos;")}')">Delete</button>
+            <button class="btn-delete" onclick="deleteFeedFromManage(${f.id}, '${escapeHtml(f.title || 'Untitled').replace(/'/g, "\\'")}')">Delete</button>
         </div>
     `).join('');
 }
@@ -151,9 +264,11 @@ function renderManageFeeds() {
 async function deleteFeedFromManage(id, title) {
     if (!confirm(`Delete "${title}"?`)) return;
 
-    await fetch(`/api/feeds/${id}`, { method: 'DELETE' });
-    await loadFeeds();
-    renderManageFeeds();
+    const res = await authFetch(`/api/feeds/${id}`, { method: 'DELETE' });
+    if (res && res.ok) {
+        await loadFeeds();
+        renderManageFeeds();
+    }
 }
 
 function updateActiveStates() {
@@ -192,32 +307,19 @@ function renderArticles() {
     }
 
     articlesList.innerHTML = articles.map(a => `
-        <div class="article ${a.read ? 'read' : ''}" onclick="openArticle(${a.id}, '${a.link}')">
+        <div class="article" onclick="openArticle(${a.id}, '${escapeHtml(a.link)}')">
             <div class="article-top">
-                <div class="article-title">${a.title}</div>
+                <div class="article-title">${escapeHtml(a.title)}</div>
             </div>
-            <div class="article-meta">${!currentFeedId && a.feed_title ? a.feed_title + ' • ' : ''}${formatDate(a.published)}</div>
-            ${a.description ? `<div class="article-excerpt">${stripTags(a.description).substring(0, 150)}...</div>` : ''}
+            <div class="article-meta">${!currentFeedId && a.feed_title ? escapeHtml(a.feed_title) + ' • ' : ''}${formatDate(a.published)}</div>
+            ${a.description ? `<div class="article-excerpt">${escapeHtml(stripTags(a.description)).substring(0, 150)}...</div>` : ''}
         </div>
     `).join('');
 }
 
 async function openArticle(id, link) {
-    // Mark as read
-    await fetch(`/api/articles/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ read: true })
-    });
-
     // Open in new tab
     window.open(link, '_blank');
-
-    // Update UI
-    const article = articles.find(a => a.id === id);
-    if (article) article.read = true;
-    renderArticles();
-    loadFeeds(); // Update unread counts
 }
 
 async function refreshAll() {
@@ -226,7 +328,7 @@ async function refreshAll() {
 
     for (const feed of feeds) {
         try {
-            await fetch(`/api/feeds/${feed.id}/refresh`, { method: 'POST' });
+            await authFetch(`/api/feeds/${feed.id}/refresh`, { method: 'POST' });
         } catch (err) {
             console.error('Error refreshing:', err);
         }
@@ -236,7 +338,7 @@ async function refreshAll() {
     refreshAllBtn.disabled = false;
 
     await loadFeeds();
-    renderManageFeeds();
+    if (isManageView) renderManageFeeds();
 }
 
 function formatDate(dateStr) {
@@ -257,6 +359,16 @@ function formatDate(dateStr) {
 function stripTags(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || '';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function toggleSidebar() {

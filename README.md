@@ -11,6 +11,17 @@ uv run app.py
 
 Open `http://localhost:5000`
 
+## Authentication (Optional)
+
+To secure write operations (add/delete feeds), set an `ADMIN_TOKEN`:
+
+```bash
+ADMIN_TOKEN=secret uv run app.py
+```
+
+- **Read:** Public
+- **Write:** Requires Login (click "🔒 Login" in sidebar)
+
 ## Features
 
 - Two-pane layout (feeds + articles)

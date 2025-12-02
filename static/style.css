@@ -8,12 +8,17 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #f8f9fa;
     height: 100vh;
+    height: 100dvh;
+    /* Mobile viewport fix */
     overflow: hidden;
 }
 
 .app {
     display: flex;
     height: 100vh;
+    height: 100dvh;
+    /* Mobile viewport fix */
+    width: 100%;
 }
 
 /* Sidebar */
@@ -78,7 +83,7 @@ body {
 }
 
 .feed:hover {
-    background: #f8f9fa;
+    background: #f0f0f0;
 }
 
 .feed.active {
@@ -109,6 +114,7 @@ body {
 .manage-feeds {
     padding: 24px;
     overflow-y: auto;
+    flex: 1;
 }
 
 .manage-header {
@@ -438,6 +444,10 @@ body {
 
     .btn-delete {
         width: 100%;
+    }
+
+    .manage-feeds {
+        padding-bottom: 120px;
     }
 }
 
