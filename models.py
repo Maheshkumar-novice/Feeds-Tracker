@@ -130,7 +130,7 @@ class Article:
         with get_db() as conn:
             cursor = conn.cursor()
             
-            query = 'SELECT a.*, f.title as feed_title FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE 1=1'
+            query = 'SELECT a.*, f.title as feed_title FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.deleted = 0'
             params = []
             
             if feed_id is not None:
