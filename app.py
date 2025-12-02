@@ -150,4 +150,4 @@ def get_articles():
 if __name__ == '__main__':
     # Use environment variable for debug mode, default to False for safety
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
-    app.run(debug=debug_mode, port=5000, host="0.0.0.0")
+    app.run(debug=debug_mode, port=5002, host="0.0.0.0")
